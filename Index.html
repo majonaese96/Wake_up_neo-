@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geheimer Zugang</title>
+    <style>
+        body {
+            background-color: black;
+            color: #00ff00; /* Matrix-Grün */
+            font-family: monospace;
+            text-align: center;
+            margin-top: 20%;
+        }
+        input {
+            background: black;
+            color: #00ff00;
+            border: none;
+            border-bottom: 2px solid #00ff00;
+            padding: 10px;
+            font-size: 18px;
+            font-family: monospace;
+            text-align: center;
+            outline: none;
+            width: 200px;
+        }
+        .cursor {
+            display: inline-block;
+            width: 10px;
+            height: 18px;
+            background-color: #00ff00;
+            animation: blink 1s infinite;
+        }
+        @keyframes blink {
+            50% { opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <h2>Gib das Passwort ein<span class="cursor"></span></h2>
+    <input type="password" id="password" placeholder="" autofocus>
+
+    <script>
+        let attemptCount = 0;
+        let lockout = false;
+        const correctHash = "341572de48c191ee1ad5ff13b0a88d7f4c7b6e70387d8a94a9b0b65a2043c126"; // Hash für "vvnlofe"
+
+        async function hashInput(input) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(input);
+            const hash = await crypto.subtle.digest("SHA-256", data);
+            return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, "0")).join("");
+        }
+
+        async function checkPassword() {
+            if (lockout) return;
+
+            const input = document.getElementById("password");
+            const userInput = input.value;
+            input.value = "";
+
+            const hash = await hashInput(userInput);
+
+            if (hash === correctHash) {
+                window.location.href = "chat.html";
+            } else {
+                attemptCount++;
+
+                if (attemptCount >= 3) {
+                    lockout = true;
+                    input.disabled = true;
+                    document.body.innerHTML += "<p>Zu viele falsche Versuche. Bitte warte 60 Sekunden...</p>";
+
+                    setTimeout(() => {
+                        lockout = false;
+                        attemptCount = 0;
+                        input.disabled = false;
+                    }, 60000); // 60 Sekunden Sperre
+                }
+            }
+        }
+
+        document.getElementById("password").addEventListener("keypress", function(event) {
+            if (event.key === "Enter") {
+                checkPassword();
+            }
+        });
+    </script>
+</body>
+</html>
